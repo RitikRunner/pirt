@@ -17,6 +17,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+      NPM_CONFIG_PROGRESS: "false"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,8 +34,15 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies (npm ci)
+        id: install_ci
+        continue-on-error: true
+        timeout-minutes: 10
+        run: npm ci --prefer-offline --loglevel=warn
+
+      - name: Fallback install (npm install)
+        if: steps.install_ci.outcome == 'failure'
+        run: npm install --no-audit --no-fund --prefer-offline --loglevel=warn
 
       - name: Build
         run: npm run build
